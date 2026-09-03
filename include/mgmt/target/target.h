@@ -2,8 +2,8 @@
  * Joybus management target.
  *
  * A generic Joybus target implementing the management command set. Owns the
- * lock state, the registered groups and the data stream, and dispatches every
- * command to the group that owns it.
+ * lock state and the registered groups, and dispatches every command to the
+ * group it names.
  *
  * The target knows nothing about any individual group beyond the SYSTEM group
  * it implements itself. Devices register their own groups.
@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <joybus/bus.h>
 #include <joybus/target.h>
 
 #include <mgmt/protocol.h>
@@ -24,19 +25,6 @@
 
 /// Cast from a generic Joybus target to a management target
 #define MGMT_TARGET(target) ((struct mgmt_target *)(target))
-
-/**
- * Device identity, reported in the IDENTIFY response.
- */
-struct mgmt_identity {
-  /// Board identifier
-  uint8_t hardware_id;
-
-  /// Running firmware version
-  uint8_t version_major;
-  uint8_t version_minor;
-  uint8_t version_patch;
-};
 
 /**
  * Joybus management target.
@@ -48,7 +36,7 @@ struct mgmt_target {
   /// Child target handling everything that is not a management command
   struct joybus_target *child;
 
-  /// Reported by IDENTIFY
+  /// The IDENTIFY response, built once at init and sent verbatim
   struct mgmt_identity identity;
 
   /// Head of the registered group list
@@ -61,15 +49,17 @@ struct mgmt_target {
   uint8_t crc;
 
   /// Response buffer
-  uint8_t response[MGMT_RESPONSE_SIZE];
+  uint8_t response[JOYBUS_BLOCK_SIZE];
 };
 
 /**
  * Initialize the management target.
  *
  * @param mgmt the management target to initialize
- * @param child the child target to manage, eg. a concrete N64 or GameCube target
- * @param identity the identity to report from IDENTIFY
+ * @param child the child target to manage, eg. an N64 or GameCube controller
+ * @param identity what to report from IDENTIFY. The magic is owned by the
+ *                 library and set here, so a caller fills in only the vendor,
+ *                 model, variant and version.
  */
 void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, const struct mgmt_identity *identity);
 
@@ -80,8 +70,7 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
  *
  * @param mgmt the management target
  * @param group the group to register
- * @return 0 on success, negative error code if the id is reserved or taken, or
- *         if the group streams and another streaming group is already registered
+ * @return 0 on success, negative error code if the id is reserved or taken
  */
 int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_group *group);
 

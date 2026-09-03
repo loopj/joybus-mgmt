@@ -3,14 +3,7 @@
  *
  * A group is a namespaced subsystem, owning its own CTRL commands, STATUS
  * block and configuration. Devices implement groups, the management target
- * dispatches to them and knows nothing else about them.
- *
- * To create a group, define a struct whose first member is a ::mgmt_group (so
- * it can be cast through ::MGMT_GROUP), point its api at a ::mgmt_group_api
- * table, and register it with mgmt_target_register_group().
- *
- * This header deliberately does not depend on libjoybus or on the target, so a
- * group implementation never has to know it is reached over a bus.
+ * dispatches to them and knows nothing else about them.=
  */
 
 #pragma once
@@ -32,11 +25,11 @@ struct mgmt_group_api {
    * Handle a CTRL command.
    *
    * @param group the group handling the command
-   * @param command the group-local command
-   * @param arg the command argument
-   * @return 0 on success, otherwise an enum mgmt_error
+   * @param verb the group-local verb
+   * @param arg the argument, or zero for verbs that take none
+   * @return 0 on success, otherwise an ::mgmt_error or a device-defined code
    */
-  uint8_t (*ctrl)(struct mgmt_group *group, uint8_t command, uint8_t arg);
+  uint8_t (*ctrl)(struct mgmt_group *group, uint8_t verb, uint8_t arg);
 
   /**
    * Fill in the group's STATUS block.
@@ -52,8 +45,8 @@ struct mgmt_group_api {
    * Read a block of the group's configuration.
    *
    * The group translates the block index to wherever it actually keeps the
-   * data. The buffer is zeroed before the call, and there is no error channel,
-   * so an out of range block simply reads back zeros.
+   * data. The buffer is zeroed before the call, and the response has no
+   * dedicated error field, so an out of range block simply reads back zeros.
    *
    * @param group the group being read
    * @param block the group-local block index
@@ -70,7 +63,7 @@ struct mgmt_group_api {
    * @param group the group being written
    * @param block the group-local block index
    * @param data the block to write
-   * @return 0 on success, otherwise an enum mgmt_error
+   * @return 0 on success, otherwise an ::mgmt_error or a device-defined code
    */
   uint8_t (*config_write)(struct mgmt_group *group, uint8_t block, const uint8_t data[MGMT_CONFIG_BLOCK_SIZE]);
 
@@ -83,7 +76,7 @@ struct mgmt_group_api {
    * @param group the group that owns the stream
    * @param block the 16-bit block index from the command
    * @param data the received data
-   * @return 0 on success, otherwise an enum mgmt_error
+   * @return 0 on success, otherwise an ::mgmt_error or a device-defined code
    */
   uint8_t (*data_write)(struct mgmt_group *group, uint16_t block, const uint8_t data[MGMT_DATA_BLOCK_SIZE]);
 };

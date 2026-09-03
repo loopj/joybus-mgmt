@@ -26,17 +26,8 @@ static inline int handle_identify(struct mgmt_target *mgmt, const uint8_t *comma
     // Unlock the management commands and reply
     mgmt->locked = false;
 
-    struct mgmt_identify *identify = (struct mgmt_identify *)mgmt->response;
-    identify->magic_hi             = MGMT_MAGIC_HI;
-    identify->magic_lo             = MGMT_MAGIC_LO;
-    identify->hardware_id          = mgmt->identity.hardware_id;
-    identify->version_major        = mgmt->identity.version_major;
-    identify->version_minor        = mgmt->identity.version_minor;
-    identify->version_patch        = mgmt->identity.version_patch;
-    identify->reserved[0]          = 0;
-    identify->reserved[1]          = 0;
-
-    send_response(mgmt->response, MGMT_CMD_IDENTIFY_RX, user_data);
+    // Sent straight from the stored struct, whose layout is the wire layout
+    send_response((const uint8_t *)&mgmt->identity, MGMT_CMD_IDENTIFY_RX, user_data);
   }
 
   return MGMT_CMD_IDENTIFY_TX - bytes_read;
@@ -81,7 +72,7 @@ static inline int handle_status(struct mgmt_target *mgmt, const uint8_t *command
   if (bytes_read == MGMT_CMD_STATUS_TX) {
     struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
 
-    // There is no error channel here, an unimplemented group reads zeros
+    // No dedicated error field, so an unimplemented group reads zeros
     memset(mgmt->response, 0, MGMT_STATUS_SIZE);
 
     if (group && group->api->status)
@@ -102,7 +93,7 @@ static inline int handle_config_read(struct mgmt_target *mgmt, const uint8_t *co
   if (bytes_read == MGMT_CMD_CONFIG_READ_TX) {
     struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
 
-    // There is no error channel here, an unreadable block reads zeros
+    // No dedicated error field, so an unreadable block reads zeros
     memset(mgmt->response, 0, MGMT_CONFIG_BLOCK_SIZE);
 
     if (group && group->api->config_read)
@@ -214,6 +205,10 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
   mgmt->child    = child;
   mgmt->identity = *identity;
 
+  // Set here rather than by the caller, so a device cannot get it wrong
+  mgmt->identity.magic_hi = MGMT_MAGIC_HI;
+  mgmt->identity.magic_lo = MGMT_MAGIC_LO;
+
   // Commands locked until a correct-magic IDENTIFY
   mgmt->locked = true;
 }
@@ -221,7 +216,7 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
 int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_group *group)
 {
   // Reserved ids belong to the management layer, not to devices
-  if (group->id <= MGMT_GROUP_RESERVED_MAX)
+  if (group->id < MGMT_GROUP_CUSTOM)
     return -1;
 
   if (mgmt_find_group(mgmt, group->id))

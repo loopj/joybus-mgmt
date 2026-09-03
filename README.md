@@ -8,11 +8,11 @@ Includes a [libjoybus](https://github.com/loopj/libjoybus) target implementation
 
 The management layer is gated behind a handshake to prevent collisions with other Joybus devices that may use the same opcode space.
 
-- The device boots **locked**
-- While locked the device answers exactly one thing, `0x60` with the magic number `0x4A53`
+- The management command set starts **locked** at boot
+- While locked the only command that answers is `0x60` with the magic number `0x4A53`
 - Every other `0x6x` opcode, and `0x60` with wrong or absent magic number, gets **no reply at all**
 - An `IDENTIFY` with the correct magic number **unlocks** the remaining `0x6x` commands
-- `CTRL(GROUP_SYSTEM, LOCK)` or a reboot returns the device to the locked state
+- `CTRL(GROUP_SYSTEM, LOCK)` or a reboot returns the command set to the locked state
 
 ## Protocol
 
@@ -29,41 +29,44 @@ The management protocol introduces the following Joybus command opcodes, which a
 
 ### IDENTIFY
 
-Get the device's hardware ID and firmware version.
+Get the device's vendor, model, variant and firmware version, and unlock the rest of the command set.
 
 ```
 Command  (3): {0x60, 0x4A, 0x53}
-Response (8): {0x4A, 0x53, hardware_id, version[3], reserved[2]}
+Response (8): {0x4A, 0x53, vendor, model, variant, version[3]}
 ```
 
 The response fields are:
 
-| Byte | Field         | Meaning                                                              |
-|-----:|---------------|----------------------------------------------------------------------|
-|  0-1 | `magic`       | Always `0x4A53`. A host **must** validate this and abort on mismatch |
-|    2 | `hardware_id` | Board identifier                                                     |
-|  3-5 | `version`     | Firmware version, as major, minor, patch                             |
-|  6-7 | `reserved`    | Reads zero                                                           |
+| Byte | Field     | Meaning                                                              |
+|-----:|-----------|----------------------------------------------------------------------|
+|  0-1 | `magic`   | Always `0x4A53`. A host **must** validate this and abort on mismatch |
+|    2 | `vendor`  | Who makes this device                                                |
+|    3 | `model`   | What kind of device it is, unique per vendor                         |
+|    4 | `variant` | Further detail about the device, defined by the vendor               |
+|  5-7 | `version` | Firmware version, as major, minor, patch                             |
 
 ### CTRL
 
-Send a command to a group.
+Send a command to a group, answering with a [result code](#result-codes). Triggers an action, for example beginning a firmware update or capturing a calibration pose. One argument byte is always present, ignored by verbs that do not use it.
+
+Verbs are group-local, so the same value means different things in different groups.
 
 ```
-Command  (4): {0x61, group, command, arg}
+Command  (4): {0x61, group, verb, arg}
 Response (1): {result}
 ```
 
-A device that does not recognize the `group` or the `command` responds with `0x01` (unsupported).
-
 ### STATUS
 
-Get the status of a group.
+Get the status of a group. Reports live state rather than stored settings, for example how far a firmware update has got.
 
 ```
 Command  (2): {0x62, group}
 Response (8): {byte0..byte7}
 ```
+
+The response has no dedicated error field, so a group the device does not have, or one that reports no status, reads back all zeros.
 
 ### CONFIG_READ / CONFIG_WRITE
 
@@ -74,7 +77,7 @@ Command  (3):  {0x63, group, block}
 Response (8):  {byte0..byte7}
 ```
 
-Write an 8-byte configuration data block to a group's non-volatile configuration storage.
+Write an 8-byte configuration data block to a group's non-volatile configuration storage, answering with a [result code](#result-codes).
 
 ```
 Command  (11): {0x64, group, block, byte0..byte7}
@@ -83,9 +86,11 @@ Response (1):  {result}
 
 A group and block pair is a logical address, not a direct storage offset. The device translates it to a physical flash or EEPROM location.
 
+A read has no dedicated error field, so an unknown group, a group with no configuration, or a block outside its range all read back as zeros.
+
 ### DATA_WRITE
 
-Write 32 data bytes to a group at the specified offset. Intended for streaming data such as firmware updates, where data is sent in sequential blocks.
+Write 32 data bytes to a group at the specified offset. Intended for streaming data such as firmware updates. The group decides what the address means, what ordering it requires, and whether it is in a state to accept data at all.
 
 ```
 Command  (36): {0x65, group, addr_hi, addr_lo, byte0..byte31}
@@ -94,9 +99,23 @@ Response (1):  {crc8}
 
 The 16-bit address range gives a maximum of 65,536 (2^16) blocks of 32 bytes, or a maximum image size of 2 MB.
 
-The response **crc8** is the device's CRC8 (polynomial `0x85`) over the 32 received data bytes. The host compares it against its own and retransmits that block on mismatch.
+The response **crc8** is the device's CRC8 (polynomial `0x85`) over the 32 received data bytes. The host compares it against its own and retransmits that block on mismatch. It is the same checksum N64 Controller Pak transfers use, so implementations already exist, as `joybus_data_checksum()` in libjoybus and `joybus_accessory_calculate_data_crc()` in libdragon.
 
-If the device rejects the write, for example if the group does not accept streamed data, the address does not match the expected next block, or the group isn't ready to receive data, it responds with the payload crc8 **XOR `0xFF`** so the host can detect the rejection.
+If the group rejects the write, for example because it does not accept streamed data or is not in a state to receive any, the device responds with the payload crc8 **XOR `0xFF`** so the host can detect the rejection.
+
+### Result Codes
+
+`CTRL` and `CONFIG_WRITE` both answer with a result byte. A host that does not recognize a code should still treat it as a failure. Codes from `0x80` up are device defined, and only mean anything to a host that recognizes the vendor and model.
+
+| Code   | Name        | Meaning                                                                   |
+|--------|-------------|---------------------------------------------------------------------------|
+| `0x00` | success     | The command was carried out                                               |
+| `0x01` | unsupported | The group, or the command within it, is not implemented                   |
+| `0x02` | bad state   | Understood, but not while the device is in its current state              |
+| `0x03` | bad address | No such address in this group                                             |
+| `0x04` | bad value   | The address was fine, the value was not                                   |
+| `0x05` | failed      | The device could not complete the command, such as a failed storage write |
+| `0x06` | busy        | Busy with something else, so worth retrying                               |
 
 ## Groups
 
@@ -104,7 +123,7 @@ All commands except `IDENTIFY` take a `group` parameter, selecting which subsyst
 
 ### Built-in Groups
 
-Group numbers `0x00 - 0x0F` are reserved for built-in groups.
+Group numbers below `0x80` are reserved for built-in groups.
 
 The `SYSTEM` group (0x00) provides a single built-in command `0x00` (`LOCK`), which [locks the management protocol](#lock-model).
 
