@@ -32,16 +32,18 @@ The management protocol introduces the following Joybus command opcodes, which a
 Get the device's hardware ID and firmware version.
 
 ```
-Command  (3): {0x60, magic_hi, magic_lo}
-Response (8): {magic_hi, magic_lo, hardware_id, version_major, version_minor, version_patch, reserved x2}
+Command  (3): {0x60, 0x4A, 0x53}
+Response (8): {0x4A, 0x53, hardware_id, version[3], reserved[2]}
 ```
 
-| Field                                           | Meaning                                                             |
-|-------------------------------------------------|---------------------------------------------------------------------|
-| `magic_hi` `magic_lo`                           | Fixed `0x4A53`. A host **must** validate this and abort on mismatch |
-| `hardware_id`                                   | Board identifier                                                    |
-| `version_major` `version_minor` `version_patch` | Firmware version                                                    |
-| `reserved`                                      | Reads zero                                                          |
+The response fields are:
+
+| Byte | Field         | Meaning                                                              |
+|-----:|---------------|----------------------------------------------------------------------|
+|  0-1 | `magic`       | Always `0x4A53`. A host **must** validate this and abort on mismatch |
+|    2 | `hardware_id` | Board identifier                                                     |
+|  3-5 | `version`     | Firmware version, as major, minor, patch                             |
+|  6-7 | `reserved`    | Reads zero                                                           |
 
 ### CTRL
 
