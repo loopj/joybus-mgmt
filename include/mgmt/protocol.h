@@ -117,6 +117,13 @@
 #define MGMT_CONFIG_BLOCK_SIZE   8
 #define MGMT_DATA_BLOCK_SIZE     32
 
+// How many config blocks a record of `payload` bytes occupies
+#define MGMT_CONFIG_RECORD_BLOCKS(payload) \
+  (((payload) + MGMT_CONFIG_BLOCK_SIZE - 1) / MGMT_CONFIG_BLOCK_SIZE)
+
+// Padded size of that record, which is the buffer each side needs
+#define MGMT_CONFIG_RECORD_BYTES(payload) (MGMT_CONFIG_RECORD_BLOCKS(payload) * MGMT_CONFIG_BLOCK_SIZE)
+
 // First ID available for custom groups, below this is reserved
 #define MGMT_GROUP_CUSTOM        0x80
 

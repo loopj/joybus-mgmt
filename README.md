@@ -88,6 +88,8 @@ A group and block pair is a logical address, not a direct storage offset. The de
 
 A read has no dedicated error field, so an unknown group, a group with no configuration, or a block outside its range all read back as zeros.
 
+Configuration larger than a single block is transferred as a [config record](#config-records).
+
 ### DATA_WRITE
 
 Write 32 data bytes to a group at the specified offset. Intended for streaming data such as firmware updates. The group decides what the address means, what ordering it requires, and whether it is in a state to accept data at all.
@@ -116,6 +118,12 @@ If the group rejects the write, for example because it does not accept streamed 
 | `0x04` | bad value   | The address was fine, the value was not                                   |
 | `0x05` | failed      | The device could not complete the command, such as a failed storage write |
 | `0x06` | busy        | Busy with something else, so worth retrying                               |
+
+### Config Records
+
+A record is a config value with its own address, occupying as many whole blocks as it needs. For example, a 10-byte record takes two blocks, leaving six bytes spare.
+
+Put each record's address and payload size in a header shared between device firmware and host tools, so both sides agree on the layout. The macros `MGMT_CONFIG_RECORD_BLOCKS(payload)` and `MGMT_CONFIG_RECORD_BYTES(payload)` are provided to help calculate a record's block count and total size in bytes.
 
 ## Groups
 
