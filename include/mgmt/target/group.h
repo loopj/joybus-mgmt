@@ -57,9 +57,6 @@ struct mgmt_group_api {
   /**
    * Write a block of the group's configuration.
    *
-   * The write takes effect immediately, so a group re-derives whatever it
-   * computes from config here rather than waiting for a reboot.
-   *
    * @param group the group being written
    * @param block the group-local block index
    * @param data the block to write
