@@ -15,5 +15,5 @@ target_link_libraries(joybus_mgmt_target INTERFACE joybus_mgmt joybus)
 
 # N64 (libdragon) host client interface, link this from N64 homebrew
 add_library(joybus_mgmt_n64 INTERFACE)
-target_sources(joybus_mgmt_n64 INTERFACE src/host/n64.c)
+target_sources(joybus_mgmt_n64 INTERFACE src/host/host.c src/host/n64.c)
 target_link_libraries(joybus_mgmt_n64 INTERFACE joybus_mgmt)

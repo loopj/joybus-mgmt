@@ -4,7 +4,8 @@ JOYBUS_MGMT_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 
 N64_C_AND_CXX_FLAGS += -I$(JOYBUS_MGMT_DIR)/include
 
-JOYBUS_MGMT_N64_OBJS := $(BUILD_DIR)/joybus_mgmt/n64.o
+# The shared host interface, plus the libdragon transport
+JOYBUS_MGMT_N64_OBJS := $(BUILD_DIR)/joybus_mgmt/host.o $(BUILD_DIR)/joybus_mgmt/n64.o
 
 # A pattern rule, so this cannot become the app's default goal
 $(BUILD_DIR)/joybus_mgmt/%.o: $(JOYBUS_MGMT_DIR)/src/host/%.c
