@@ -24,8 +24,27 @@
 // Written to the last byte of the block to ask the PIF to run the commands
 #define PIF_RUN_COMMANDS 0x01
 
-// Not public API: libdragon exports this but declares it only in a private header
-uint8_t joybus_accessory_calculate_data_crc(const uint8_t *data);
+// CRC-8 over a data block, seeded at zero with polynomial 0x85
+// From libdragon's joybus_accessory_calculate_data_crc(), public domain
+static uint8_t data_crc(const uint8_t data[MGMT_DATA_BLOCK_SIZE])
+{
+  unsigned crc = 0;
+
+  for (int i = 0; i < MGMT_DATA_BLOCK_SIZE; i++) {
+    unsigned x = crc ^ data[i];
+
+    crc = (x & 0x80) ? 0x89 : 0;
+    crc ^= (x & 0x40) ? 0x86 : 0;
+    crc ^= (x & 0x20) ? 0x43 : 0;
+    crc ^= (x & 0x10) ? 0xE3 : 0;
+    crc ^= (x & 0x08) ? 0xB3 : 0;
+    crc ^= (x & 0x04) ? 0x9B : 0;
+    crc ^= (x & 0x02) ? 0x8F : 0;
+    crc ^= (x & 0x01) ? 0x85 : 0;
+  }
+
+  return crc;
+}
 
 // Run one command on a port, returning false if the device did not answer
 // Not joybus_exec_cmd(), which discards the receive length byte and its flags
@@ -146,7 +165,7 @@ int mgmt_host_data_write(int port, uint8_t group, uint16_t block, const uint8_t 
     return -MGMT_HOST_ERR_NO_REPLY;
 
   // Check the CRC against the expected value
-  uint8_t expected = joybus_accessory_calculate_data_crc(data);
+  uint8_t expected = data_crc(data);
   if (crc == expected)
     return 0;
 
@@ -156,4 +175,50 @@ int mgmt_host_data_write(int port, uint8_t group, uint16_t block, const uint8_t 
 
   // The CRC is invalid
   return -MGMT_HOST_ERR_BAD_CRC;
+}
+
+int mgmt_host_config_read_record(int port, uint8_t group, uint8_t addr, void *response, size_t size)
+{
+  // The record arrives one block at a time
+  uint8_t *record = response;
+
+  for (size_t offset = 0; offset < size; offset += MGMT_CONFIG_BLOCK_SIZE) {
+    // Read the next block of the record
+    uint8_t block[MGMT_CONFIG_BLOCK_SIZE];
+    int err = mgmt_host_config_read(port, group, addr++, block);
+    if (err != 0)
+      return err;
+
+    // Copy it in, stopping short of the padding in the last block
+    size_t remaining = size - offset;
+    memcpy(record + offset, block, remaining < MGMT_CONFIG_BLOCK_SIZE ? remaining : MGMT_CONFIG_BLOCK_SIZE);
+  }
+
+  return 0;
+}
+
+int mgmt_host_config_write_record(int port, uint8_t group, uint8_t addr, const void *data, size_t size, uint8_t *result)
+{
+  // The record goes out one block at a time
+  const uint8_t *record = data;
+
+  for (size_t offset = 0; offset < size; offset += MGMT_CONFIG_BLOCK_SIZE) {
+    // Zeroed, so the padding past the end of the record goes out as zeros
+    uint8_t block[MGMT_CONFIG_BLOCK_SIZE] = {0};
+
+    // Fill the block with whatever is left of the record
+    size_t remaining = size - offset;
+    memcpy(block, record + offset, remaining < MGMT_CONFIG_BLOCK_SIZE ? remaining : MGMT_CONFIG_BLOCK_SIZE);
+
+    // Write the block and check for a reply
+    int err = mgmt_host_config_write(port, group, addr++, block, result);
+    if (err != 0)
+      return err;
+
+    // Stop at the first block the device refuses, leaving the record half written
+    if (*result != 0)
+      return 0;
+  }
+
+  return 0;
 }

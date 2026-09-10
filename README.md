@@ -204,6 +204,10 @@ Three libraries ship from this repo.
 
 Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it. N64 homebrew builds with make, so it includes `joybus_mgmt_n64.mk` instead of linking the `joybus_mgmt_n64` target. Host tools on other platforms link `joybus_mgmt` for the headers alone.
 
+## Credits
+
+The CRC8 routine the host library uses is taken from `joybus_accessory_calculate_data_crc()` in [libdragon](https://github.com/DragonMinded/libdragon), which is released into the public domain. It is copied rather than called because every host platform needs this checksum, not just the N64.
+
 ## License
 
 joybus-mgmt is released under the MIT license. See [LICENSE](LICENSE).

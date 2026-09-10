@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include <mgmt/protocol.h>
@@ -117,3 +118,41 @@ int mgmt_host_config_write(int port, uint8_t group, uint8_t block, const uint8_t
  * @return 0 on success, a negative mgmt_host_error on failure
  */
 int mgmt_host_data_write(int port, uint8_t group, uint16_t block, const uint8_t data[MGMT_DATA_BLOCK_SIZE]);
+
+/**
+ * Read a config record from a group.
+ *
+ * A helper layered on CONFIG_READ, issuing one command per block.
+ *
+ * The record occupies MGMT_CONFIG_RECORD_BLOCKS(size) blocks from `addr`. Only
+ * `size` bytes are stored, so the padding in the last block is dropped.
+ *
+ * @param port the port to read from
+ * @param group the group to read from
+ * @param addr the group-local block index the record starts at
+ * @param response buffer to store the record in
+ * @param size the record's payload size in bytes
+ * @return 0 on success, a negative mgmt_host_error on failure
+ */
+int mgmt_host_config_read_record(int port, uint8_t group, uint8_t addr, void *response, size_t size);
+
+/**
+ * Write a config record to a group.
+ *
+ * A helper layered on CONFIG_WRITE, issuing one command per block.
+ *
+ * The record occupies MGMT_CONFIG_RECORD_BLOCKS(size) blocks from `addr`, and
+ * the padding in the last block goes out as zeros. Nothing spans blocks on the
+ * wire, so a device that refuses partway leaves the record half written.
+ *
+ * @param port the port to write to
+ * @param group the group to write to
+ * @param addr the group-local block index the record starts at
+ * @param data the record to write
+ * @param size the record's payload size in bytes
+ * @param result buffer to store the device's result code in, 0 if every block
+ *               was written, otherwise the code that stopped the write
+ * @return 0 on success, a negative mgmt_host_error on failure
+ */
+int mgmt_host_config_write_record(int port, uint8_t group, uint8_t addr, const void *data, size_t size,
+                                  uint8_t *result);
