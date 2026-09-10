@@ -1,7 +1,7 @@
 /**
- * Joybus management target.
+ * libjoybus management target.
  *
- * A generic Joybus target implementing the management command set. Owns the
+ * A libjoybus target implementing the management command set. Owns the
  * lock state and the registered groups, and dispatches every command to the
  * group it names.
  *
@@ -21,7 +21,7 @@
 #include <joybus/target.h>
 
 #include <mgmt/protocol.h>
-#include <mgmt/target/group.h>
+#include <mgmt/target_group.h>
 
 /// Cast from a generic Joybus target to a management target
 #define MGMT_TARGET(target) ((struct mgmt_target *)(target))
@@ -40,7 +40,7 @@ struct mgmt_target {
   struct mgmt_identity identity;
 
   /// Head of the registered group list
-  struct mgmt_group *groups;
+  struct mgmt_target_group *groups;
 
   /// Locked until a correct-magic IDENTIFY
   bool locked;
@@ -72,7 +72,7 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
  * @param group the group to register
  * @return 0 on success, negative error code if the id is reserved or taken
  */
-int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_group *group);
+int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_target_group *group);
 
 /**
  * Find a registered group by id.
@@ -81,4 +81,4 @@ int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_group *grou
  * @param id the group id to look for
  * @return the group, or NULL if it is not registered
  */
-struct mgmt_group *mgmt_find_group(struct mgmt_target *mgmt, uint8_t id);
+struct mgmt_target_group *mgmt_target_find_group(struct mgmt_target *mgmt, uint8_t id);

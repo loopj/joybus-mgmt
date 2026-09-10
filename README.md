@@ -197,7 +197,7 @@ Two libraries ship from this repo.
 | Target               | Contents                                     | Dependencies               |
 |----------------------|----------------------------------------------|----------------------------|
 | `joybus_mgmt`        | Wire protocol definitions, `mgmt/*.h`        | none                       |
-| `joybus_mgmt_target` | Generic management target, `mgmt/target/*.h` | `joybus_mgmt`, `libjoybus` |
+| `joybus_mgmt_target` | Generic management target, `mgmt/target*.h`  | `joybus_mgmt`, `libjoybus` |
 
 Homebrew and host tools link `joybus_mgmt` and get headers only. Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it.
 
