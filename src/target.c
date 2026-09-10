@@ -4,11 +4,11 @@
 #include <joybus/errors.h>
 
 #include <mgmt/protocol.h>
-#include <mgmt/target/target.h>
+#include <mgmt/target.h>
 
-struct mgmt_group *mgmt_find_group(struct mgmt_target *mgmt, uint8_t id)
+struct mgmt_target_group *mgmt_target_find_group(struct mgmt_target *mgmt, uint8_t id)
 {
-  for (struct mgmt_group *group = mgmt->groups; group; group = group->next) {
+  for (struct mgmt_target_group *group = mgmt->groups; group; group = group->next) {
     if (group->id == id)
       return group;
   }
@@ -51,7 +51,7 @@ static inline int handle_ctrl(struct mgmt_target *mgmt, const uint8_t *command, 
       }
     } else {
       // Pass the control command to the group's API
-      struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
+      struct mgmt_target_group *group = mgmt_target_find_group(mgmt, command[1]);
       if (group && group->api->ctrl)
         result = group->api->ctrl(group, command[2], command[3]);
     }
@@ -70,7 +70,7 @@ static inline int handle_status(struct mgmt_target *mgmt, const uint8_t *command
     return -JOYBUS_ERR_NOT_SUPPORTED;
 
   if (bytes_read == MGMT_CMD_STATUS_TX) {
-    struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
+    struct mgmt_target_group *group = mgmt_target_find_group(mgmt, command[1]);
 
     // No dedicated error field, so an unimplemented group reads zeros
     memset(mgmt->response, 0, MGMT_STATUS_SIZE);
@@ -91,7 +91,7 @@ static inline int handle_config_read(struct mgmt_target *mgmt, const uint8_t *co
     return -JOYBUS_ERR_NOT_SUPPORTED;
 
   if (bytes_read == MGMT_CMD_CONFIG_READ_TX) {
-    struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
+    struct mgmt_target_group *group = mgmt_target_find_group(mgmt, command[1]);
 
     // No dedicated error field, so an unreadable block reads zeros
     memset(mgmt->response, 0, MGMT_CONFIG_BLOCK_SIZE);
@@ -112,8 +112,8 @@ static inline int handle_config_write(struct mgmt_target *mgmt, const uint8_t *c
     return -JOYBUS_ERR_NOT_SUPPORTED;
 
   if (bytes_read == MGMT_CMD_CONFIG_WRITE_TX) {
-    uint8_t result           = MGMT_ERR_UNSUPPORTED;
-    struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
+    uint8_t result                  = MGMT_ERR_UNSUPPORTED;
+    struct mgmt_target_group *group = mgmt_target_find_group(mgmt, command[1]);
 
     if (group && group->api->config_write)
       result = group->api->config_write(group, command[2], &command[3]);
@@ -142,8 +142,8 @@ static inline int handle_data_write(struct mgmt_target *mgmt, const uint8_t *com
   mgmt->crc = joybus_data_checksum_update(mgmt->crc, command[bytes_read - 1]);
 
   if (bytes_read == MGMT_CMD_DATA_WRITE_TX) {
-    struct mgmt_group *group = mgmt_find_group(mgmt, command[1]);
-    uint16_t block           = ((uint16_t)command[2] << 8) | command[3];
+    struct mgmt_target_group *group = mgmt_target_find_group(mgmt, command[1]);
+    uint16_t block                  = ((uint16_t)command[2] << 8) | command[3];
 
     // A group that cannot receive data rejects the block like any other refusal
     uint8_t result = MGMT_ERR_UNSUPPORTED;
@@ -213,13 +213,13 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
   mgmt->locked = true;
 }
 
-int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_group *group)
+int mgmt_target_register_group(struct mgmt_target *mgmt, struct mgmt_target_group *group)
 {
   // Reserved ids belong to the management layer, not to devices
   if (group->id < MGMT_GROUP_CUSTOM)
     return -1;
 
-  if (mgmt_find_group(mgmt, group->id))
+  if (mgmt_target_find_group(mgmt, group->id))
     return -1;
 
   group->next  = mgmt->groups;

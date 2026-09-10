@@ -2,7 +2,7 @@
 
 A Joybus command set for identifying, configuring and updating microcontrollers from N64, GameCube, and Wii homebrew.
 
-Includes a [libjoybus](https://github.com/loopj/libjoybus) target implementation.
+Includes a [libjoybus](https://github.com/loopj/libjoybus) target implementation for devices, and a [libdragon](https://github.com/DragonMinded/libdragon) host client for N64 homebrew.
 
 ## Lock Model
 
@@ -101,7 +101,9 @@ Response (1):  {crc8}
 
 The 16-bit address range gives a maximum of 65,536 (2^16) blocks of 32 bytes, or a maximum image size of 2 MB.
 
-The response **crc8** is the device's CRC8 (polynomial `0x85`) over the 32 received data bytes. The host compares it against its own and retransmits that block on mismatch. It is the same checksum N64 Controller Pak transfers use, so implementations already exist, as `joybus_data_checksum()` in libjoybus and `joybus_accessory_calculate_data_crc()` in libdragon.
+The response **crc8** is the device's CRC8 (polynomial `0x85`) over the 32 received data bytes. The host compares it against its own and retransmits that block on mismatch.
+
+The block size, seed and polynomial deliberately match standard Joybus data transfers, for example the ones used in accessory pak reads and writes, so both sides already have this checksum, as `joybus_data_checksum()` in libjoybus and `joybus_accessory_calculate_data_crc()` in libdragon.
 
 If the group rejects the write, for example because it does not accept streamed data or is not in a state to receive any, the device responds with the payload crc8 **XOR `0xFF`** so the host can detect the rejection.
 
@@ -192,14 +194,19 @@ Custom devices should use an ID from `0x80` (`MGMT_VENDOR_CUSTOM`) up. Open a pu
 
 ## Layout
 
-Two libraries ship from this repo.
+Three libraries ship from this repo.
 
 | Target               | Contents                                     | Dependencies               |
 |----------------------|----------------------------------------------|----------------------------|
-| `joybus_mgmt`        | Wire protocol definitions, `mgmt/*.h`        | none                       |
-| `joybus_mgmt_target` | Generic management target, `mgmt/target/*.h` | `joybus_mgmt`, `libjoybus` |
+| `joybus_mgmt`        | Wire protocol definitions, `mgmt/protocol.h` | none                       |
+| `joybus_mgmt_target` | libjoybus target, `mgmt/target*.h`           | `joybus_mgmt`, `libjoybus` |
+| `joybus_mgmt_n64`    | libdragon host client, `mgmt/host.h`         | `joybus_mgmt`, `libdragon` |
 
-Homebrew and host tools link `joybus_mgmt` and get headers only. Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it.
+Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it. N64 homebrew builds with make, so it includes `joybus_mgmt_n64.mk` instead of linking the `joybus_mgmt_n64` target. Host tools on other platforms link `joybus_mgmt` for the headers alone.
+
+## Credits
+
+The CRC8 routine the host library uses is taken from `joybus_accessory_calculate_data_crc()` in [libdragon](https://github.com/DragonMinded/libdragon), which is released into the public domain. It is copied rather than called because every host platform needs this checksum, not just the N64.
 
 ## License
 
