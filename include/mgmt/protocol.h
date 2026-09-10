@@ -127,6 +127,17 @@
 // First ID available for custom groups, below this is reserved
 #define MGMT_GROUP_CUSTOM        0x80
 
+/**
+ * Reserved vendor IDs, as reported by IDENTIFY.
+ *
+ * Model and variant are defined per vendor, so a host needs the vendor before
+ * the rest of the identity means anything.
+ */
+enum mgmt_vendor {
+  MGMT_VENDOR_JOYSTAMP    = 0x01,
+  MGMT_VENDOR_WAVEPHOENIX = 0x02,
+};
+
 // First ID available for custom vendors, below this is reserved
 #define MGMT_VENDOR_CUSTOM       0x80
 
