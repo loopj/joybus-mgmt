@@ -41,7 +41,7 @@ The response fields are:
 | Byte | Field     | Meaning                                                              |
 |-----:|-----------|----------------------------------------------------------------------|
 |  0-1 | `magic`   | Always `0x4A53`. A host **must** validate this and abort on mismatch |
-|    2 | `vendor`  | Who makes this device                                                |
+|    2 | `vendor`  | Who makes this device, see [Vendors](#vendors)                       |
 |    3 | `model`   | What kind of device it is, unique per vendor                         |
 |    4 | `variant` | Further detail about the device, defined by the vendor               |
 |  5-7 | `version` | Firmware version, as major, minor, patch                             |
@@ -176,6 +176,19 @@ CONFIG_READ(GROUP_INPUT, SHAPE_DATA + n * 2 + 1) // Read bytes 8-15 of shaping d
 CONFIG_WRITE(GROUP_INPUT, SHAPE_DATA + n * 2, ...)      // Write bytes 0-7 of shaping config for input n
 CONFIG_WRITE(GROUP_INPUT, SHAPE_DATA + n * 2 + 1, ...)  // Write bytes 8-15 of shaping config for input n
 ```
+
+## Vendors
+
+The `vendor` byte of the `IDENTIFY` response says who makes the device. Model and variant are defined per vendor, so a host needs the vendor before the rest of the identity means anything.
+
+Vendor IDs below `0x80` are reserved.
+
+| ID     | Vendor                                                   |
+|--------|----------------------------------------------------------|
+| `0x01` | [Joystamp](https://github.com/loopj/joystamp)            |
+| `0x02` | [WavePhoenix](https://github.com/loopj/wavephoenix)      |
+
+Custom devices should use an ID from `0x80` (`MGMT_VENDOR_CUSTOM`) up. Open a pull request to reserve a new ID below `0x80`.
 
 ## Layout
 
