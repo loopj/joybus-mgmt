@@ -10,7 +10,7 @@
 
 #include <mgmt/host.h>
 
-#include "transport.h"
+#include "transfer.h"
 
 // CRC-8 over a data block, seeded at zero with polynomial 0x85
 // From libdragon's joybus_accessory_calculate_data_crc(), public domain
@@ -31,7 +31,7 @@ static uint8_t data_crc(const uint8_t data[MGMT_DATA_BLOCK_SIZE])
     crc ^= (x & 0x01) ? 0x85 : 0;
   }
 
-  return crc;
+  return (uint8_t)crc;
 }
 
 int mgmt_host_identify(int port, struct mgmt_identity *response)
@@ -115,7 +115,8 @@ int mgmt_host_config_write(int port, uint8_t group, uint8_t block, const uint8_t
 int mgmt_host_data_write(int port, uint8_t group, uint16_t block, const uint8_t data[MGMT_DATA_BLOCK_SIZE])
 {
   // Build the DATA_WRITE command
-  uint8_t command[MGMT_CMD_DATA_WRITE_TX] = {MGMT_CMD_DATA_WRITE, group, block >> 8, block & 0xFF};
+  uint8_t command[MGMT_CMD_DATA_WRITE_TX] = {MGMT_CMD_DATA_WRITE, group, (uint8_t)(block >> 8),
+                                             (uint8_t)(block & 0xFF)};
 
   // Copy the data to write into the command
   memcpy(&command[4], data, MGMT_DATA_BLOCK_SIZE);

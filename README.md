@@ -194,15 +194,16 @@ Custom devices should use an ID from `0x80` (`MGMT_VENDOR_CUSTOM`) up. Open a pu
 
 ## Layout
 
-Three libraries ship from this repo.
+Four libraries ship from this repo.
 
-| Target               | Contents                                     | Dependencies               |
-|----------------------|----------------------------------------------|----------------------------|
-| `joybus_mgmt`        | Wire protocol definitions, `mgmt/protocol.h` | none                       |
-| `joybus_mgmt_target` | libjoybus target, `mgmt/target*.h`           | `joybus_mgmt`, `libjoybus` |
-| `joybus_mgmt_n64`    | libdragon host client, `mgmt/host.h`         | `joybus_mgmt`, `libdragon` |
+| Target                       | Contents                                     | Dependencies               |
+|------------------------------|----------------------------------------------|----------------------------|
+| `joybus_mgmt`                | Wire protocol definitions, `mgmt/protocol.h` | none                       |
+| `joybus_mgmt_target`         | libjoybus target, `mgmt/target*.h`           | `joybus_mgmt`, `libjoybus` |
+| `joybus_mgmt_host_libdragon` | libdragon host client, `mgmt/host.h`         | `joybus_mgmt`, `libdragon` |
+| `joybus_mgmt_host_libogc`    | libogc host client, `mgmt/host.h`            | `joybus_mgmt`, `libogc`    |
 
-Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it. N64 homebrew builds with make, so it includes `joybus_mgmt_n64.mk` instead of linking the `joybus_mgmt_n64` target. Host tools on other platforms link `joybus_mgmt` for the headers alone.
+Device firmware links `joybus_mgmt_target` and inherits the protocol headers with it. GameCube and Wii homebrew links `joybus_mgmt_host_libogc`, built with devkitPro's CMake toolchains. N64 homebrew builds with make rather than CMake, so it includes `joybus_mgmt_host_libdragon.mk` instead of linking the `joybus_mgmt_host_libdragon` target. Host tools on other platforms link `joybus_mgmt` for the headers alone.
 
 ## Credits
 

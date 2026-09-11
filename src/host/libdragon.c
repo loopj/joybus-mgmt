@@ -13,7 +13,7 @@
 
 #include <mgmt/host.h>
 
-#include "transport.h"
+#include "transfer.h"
 
 // Flags the PIF sets in a command's receive length byte after execution
 #define PIF_RX_NO_DEVICE 0x80 // Nothing on the port answered
@@ -33,9 +33,9 @@ int mgmt_host_transfer(int port, const uint8_t *command, size_t command_len, uin
   uint8_t output[JOYBUS_BLOCK_SIZE] = {0};
 
   // Skip the ports before this one, then lay down the command and its lengths
-  size_t i   = port;
-  input[i++] = command_len;
-  input[i++] = response_len;
+  size_t i   = (size_t)port;
+  input[i++] = (uint8_t)command_len;
+  input[i++] = (uint8_t)response_len;
   memcpy(&input[i], command, command_len);
   i += command_len + response_len;
 
@@ -46,9 +46,13 @@ int mgmt_host_transfer(int port, const uint8_t *command, size_t command_len, uin
   // Run the block, blocking until the exchange completes
   joybus_exec(input, output);
 
-  // Check the receive length byte for a missing device or an overrun reply
-  if (output[port + 1] & (PIF_RX_NO_DEVICE | PIF_RX_OVERFLOW))
+  // Nothing on the port answered
+  if (output[port + 1] & PIF_RX_NO_DEVICE)
     return -MGMT_HOST_ERR_NO_REPLY;
+
+  // The reply outran the space allocated for it
+  if (output[port + 1] & PIF_RX_OVERFLOW)
+    return -MGMT_HOST_ERR_TRANSFER;
 
   // Copy the reply out of the block
   memcpy(response, &output[i - response_len], response_len);

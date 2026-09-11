@@ -5,7 +5,7 @@
  * to a device. One function per command, each a blocking round trip on the
  * bus.
  *
- * The API is platform neutral. A platform backend, such as src/host/n64.c for
+ * The API is platform neutral. A platform backend, such as src/host/libdragon.c for
  * libdragon, supplies the transport.
  */
 
@@ -27,6 +27,9 @@
 enum mgmt_host_error {
   // Nothing on the port answered
   MGMT_HOST_ERR_NO_REPLY = 1,
+
+  // The exchange itself went wrong, for example a collision on the bus
+  MGMT_HOST_ERR_TRANSFER,
 
   // Something answered IDENTIFY, but without this protocol's signature
   MGMT_HOST_ERR_BAD_MAGIC,

@@ -1,9 +1,9 @@
 /**
- * Transport for the management host.
+ * The one function a host backend implements.
  *
- * The whole host interface is written in terms of this one function, so a
- * platform is supported by implementing it and nothing else. Private to the
- * library, not part of the public interface.
+ * The whole host interface is written in terms of it, so a platform is
+ * supported by implementing this and nothing else. Private to the library,
+ * not part of the public interface.
  */
 
 #pragma once
