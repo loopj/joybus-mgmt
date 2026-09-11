@@ -13,4 +13,8 @@ $(BUILD_DIR)/joybus_mgmt/%.o: $(JOYBUS_MGMT_DIR)/src/host/%.c
 	@echo "    [CC] $<"
 	$(CC) -c $(CFLAGS) -o $@ $<
 
+# A dep file holds an explicit rule, so including one would otherwise make its
+# object the app's default goal, ahead of whatever the app defines below
+JOYBUS_MGMT_GOAL := $(.DEFAULT_GOAL)
 -include $(wildcard $(BUILD_DIR)/joybus_mgmt/*.d)
+.DEFAULT_GOAL := $(JOYBUS_MGMT_GOAL)
