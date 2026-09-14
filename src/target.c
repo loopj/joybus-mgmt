@@ -186,15 +186,15 @@ static int mgmt_byte_received(struct joybus_target *target, const uint8_t *comma
       return handle_data_write(mgmt, command, bytes_read, send_response, user_data);
   }
 
-  // Not ours, hand it to the child target
-  return joybus_target_byte_received(mgmt->child, command, bytes_read, send_response, user_data);
+  // Not a management command
+  return -JOYBUS_ERR_NOT_SUPPORTED;
 }
 
 static const struct joybus_target_api mgmt_api = {
   .byte_received = mgmt_byte_received,
 };
 
-void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, const struct mgmt_identity *identity)
+void mgmt_target_init(struct mgmt_target *mgmt, const struct mgmt_identity *identity)
 {
   // Start from a clean state
   memset(mgmt, 0, sizeof(*mgmt));
@@ -202,7 +202,6 @@ void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, con
   struct joybus_target *target = JOYBUS_TARGET(mgmt);
   target->api                  = &mgmt_api;
 
-  mgmt->child    = child;
   mgmt->identity = *identity;
 
   // Set here rather than by the caller, so a device cannot get it wrong

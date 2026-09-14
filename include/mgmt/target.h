@@ -7,9 +7,6 @@
  *
  * The target knows nothing about any individual group beyond the SYSTEM group
  * it implements itself. Devices register their own groups.
- *
- * Commands the target does not handle are delegated to a child target, so it
- * can be layered in front of a concrete N64 or GameCube controller.
  */
 
 #pragma once
@@ -33,9 +30,6 @@ struct mgmt_target {
   /// API interface
   struct joybus_target base;
 
-  /// Child target handling everything that is not a management command
-  struct joybus_target *child;
-
   /// The IDENTIFY response, built once at init and sent verbatim
   struct mgmt_identity identity;
 
@@ -56,12 +50,11 @@ struct mgmt_target {
  * Initialize the management target.
  *
  * @param mgmt the management target to initialize
- * @param child the child target to manage, eg. an N64 or GameCube controller
  * @param identity what to report from IDENTIFY. The magic is owned by the
  *                 library and set here, so a caller fills in only the vendor,
  *                 model, variant and version.
  */
-void mgmt_target_init(struct mgmt_target *mgmt, struct joybus_target *child, const struct mgmt_identity *identity);
+void mgmt_target_init(struct mgmt_target *mgmt, const struct mgmt_identity *identity);
 
 /**
  * Register a group with the management target.
