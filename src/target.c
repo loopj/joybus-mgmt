@@ -1,11 +1,13 @@
 #include <string.h>
 
+#include <joybus/attributes.h>
 #include <joybus/checksum.h>
 #include <joybus/errors.h>
 
 #include <mgmt/protocol.h>
 #include <mgmt/target.h>
 
+JOYBUS_RAM_FUNC
 struct mgmt_target_group *mgmt_target_find_group(struct mgmt_target *mgmt, uint8_t id)
 {
   for (struct mgmt_target_group *group = mgmt->groups; group; group = group->next) {
@@ -16,6 +18,7 @@ struct mgmt_target_group *mgmt_target_find_group(struct mgmt_target *mgmt, uint8
   return NULL;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_identify(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                                   joybus_target_response_cb send_response, void *user_data)
 {
@@ -33,6 +36,7 @@ static inline int handle_identify(struct mgmt_target *mgmt, const uint8_t *comma
   return MGMT_CMD_IDENTIFY_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_ctrl(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                               joybus_target_response_cb send_response, void *user_data)
 {
@@ -63,6 +67,7 @@ static inline int handle_ctrl(struct mgmt_target *mgmt, const uint8_t *command, 
   return MGMT_CMD_CTRL_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_status(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                                 joybus_target_response_cb send_response, void *user_data)
 {
@@ -84,6 +89,7 @@ static inline int handle_status(struct mgmt_target *mgmt, const uint8_t *command
   return MGMT_CMD_STATUS_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_config_read(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                                      joybus_target_response_cb send_response, void *user_data)
 {
@@ -105,6 +111,7 @@ static inline int handle_config_read(struct mgmt_target *mgmt, const uint8_t *co
   return MGMT_CMD_CONFIG_READ_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_config_write(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                                       joybus_target_response_cb send_response, void *user_data)
 {
@@ -125,6 +132,7 @@ static inline int handle_config_write(struct mgmt_target *mgmt, const uint8_t *c
   return MGMT_CMD_CONFIG_WRITE_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static inline int handle_data_write(struct mgmt_target *mgmt, const uint8_t *command, uint8_t bytes_read,
                                     joybus_target_response_cb send_response, void *user_data)
 {
@@ -161,6 +169,7 @@ static inline int handle_data_write(struct mgmt_target *mgmt, const uint8_t *com
   return MGMT_CMD_DATA_WRITE_TX - bytes_read;
 }
 
+JOYBUS_RAM_FUNC
 static int mgmt_byte_received(struct joybus_target *target, const uint8_t *command, uint8_t bytes_read,
                               joybus_target_response_cb send_response, void *user_data)
 {
@@ -190,7 +199,7 @@ static int mgmt_byte_received(struct joybus_target *target, const uint8_t *comma
   return -JOYBUS_ERR_NOT_SUPPORTED;
 }
 
-static const struct joybus_target_api mgmt_api = {
+static JOYBUS_RAM_DATA const struct joybus_target_api mgmt_api = {
   .byte_received = mgmt_byte_received,
 };
 
